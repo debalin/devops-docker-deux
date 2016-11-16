@@ -11,61 +11,13 @@ var hostname = os.hostname();
 var recentKey = "recent";
 var imageKey = "images";
 var serversKey = "servers";
-var runningServersKey = "run_servers";
+var tempServersKey = "tempServers";
 var hostnameURL = "";
 var mainServerURL = "";
-var startPort = 3000;
-var currentServerPort = 3000;
-
-// REDIS
-var client = redis.createClient(6379, '127.0.0.1', {});
-client.del(serversKey, function (err, reply) {
-  if (err) throw err;
-});
-client.del(runningServersKey, function (err, reply) {
-  if (err) throw err;
-});
-
-// WEB ROUTES
-
-app.use(function (req, res, next) {
-  var url = req.protocol + '://' + req.get('host');
-  client.lrange(runningServersKey, 0, -1, function (err, reply) {
-    if (err) throw err;
-    if (reply && reply.indexOf(url) != -1) {
-      client.lrem(runningServersKey, 0, url, function (err, reply) {
-        if (err) throw err;
-        console.log("Request has been taken up by: " + url + ". Will delete from running list.");
-        client.lpush(serversKey, url, function (err, reply) {
-          console.log("Server added back to free servers list.");
-          if (err) throw err;
-        });
-      });
-      next();
-    }
-    else {
-      client.rpoplpush(serversKey, runningServersKey, function (err, reply) {
-        if (reply == null) {
-          console.log("No servers to delegate to, will perform myself: " + url);
-          next();
-        }
-        else {
-          url = reply + req.originalUrl;
-          //http://stackoverflow.com/questions/17612695/expressjs-how-to-redirect-a-post-request-with-parameters
-          if (req.method == "GET") {
-            request({ url: url }, function (err, remoteResponse, remoteBody) {
-              if (err) throw err;
-              res.send(remoteBody);
-            });
-          }
-          else if (req.method == "POST") {
-            res.redirect(307, url);
-          }
-        }
-      });
-    }
-  });
-});
+var PORT = process.env.start_port;
+var vmIP = "192.168.33.10";
+var client = redis.createClient(6379, vmIP, {});
+var webappBaseURL = "http://" + vmIP + ":";
 
 app.use(function (req, res, next) {
   //http://stackoverflow.com/questions/10183291/how-to-get-the-full-url-in-express
@@ -80,7 +32,7 @@ app.use(function (req, res, next) {
 });
 
 app.get('/recent', function (req, res) {
-  client.lrange("recent", 0, -1, function (err, reply) {
+  client.lrange(recentKey, 0, -1, function (err, reply) {
     var replyMessage = "<p>Most recent 5 URLs visited are:<br/><br/>";
     for (var site of reply) {
       replyMessage += site + "<br/>";
@@ -133,32 +85,30 @@ app.get('/get/:key', function (req, res) {
 });
 
 app.get('/spawn', function (req, res) {
-  var server = app.listen(startPort++, hostname, function () {
-    var host = server.address().address;
-    var port = server.address().port;
-    var url = "http://" + host + ":" + port;
-    console.log('Another app listening at ' + url + '.');
-    client.rpush(serversKey, url, function (err, reply) {
+  client.lrange(serversKey, 0, -1, function (err, reply) {
+    if (err) throw err;
+    var maxPort = 3000;
+    for (var server of reply) {
+      var temp = server.split(":");
+      var port = parseInt(temp[2]);
+      if (port > maxPort)
+        maxPort = port;
+    }
+    maxPort++;
+    client.lpush(tempServersKey, webappBaseURL + maxPort, function (err, reply) {
       if (err) throw err;
-      res.send("<p>Server spawned at " + url + ".</p>");
-    });
+      res.send(webappBaseURL + maxPort + " spawned.");
+    })
   });
 });
 
 app.get('/listservers', function (req, res) {
   client.lrange(serversKey, 0, -1, function (err, reply1) {
-    var replyMessage = "<p>Main server is at " + mainServerURL + ". <br/>Free servers spawned are:<br/>";
-    for (var proxy of reply1) {
-      replyMessage += proxy + "<br/>";
+    var replyMessage = "<p>Servers spawned are:<br/>";
+    for (var server of reply1) {
+      replyMessage += server + "<br/>";
     }
-    client.lrange(runningServersKey, 0, -1, function (err, reply2) {
-      replyMessage += "Busy servers: <br/>";
-      for (var proxy of reply2) {
-        replyMessage += proxy + "<br/>";
-      }
-      replyMessage += "</p>";
-      res.send(replyMessage);
-    });
+    res.send(replyMessage);
   });
 });
 
@@ -181,8 +131,8 @@ app.get('/destroy', function (req, res) {
   });
 });
 
-//main HTTP server
-var server = app.listen(startPort++, hostname, function () {
+//HTTP server
+var server = app.listen(PORT, hostname, function () {
   var host = server.address().address;
   var port = server.address().port;
   hostnameURL = "http://" + host + ":";

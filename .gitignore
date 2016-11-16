@@ -1,3 +1,5 @@
 */node_modules/
 */img/*
 */uploads/*
+.vagrant/*
+Vagrantfile
