@@ -3,3 +3,5 @@
 */uploads/*
 .vagrant/*
 Vagrantfile
+*/deploy
+*/*.git
