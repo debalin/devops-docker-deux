@@ -1,0 +1,13 @@
+{
+  "name": "dohw3-fileio-writer",
+  "version": "0.0.0",
+  "description": "redis playground",
+  "main": "writer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+  }
+}
