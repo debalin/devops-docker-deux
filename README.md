@@ -16,13 +16,15 @@ The `infrastructure.js` sits outside the containers as a simple node application
 2. Removes it. 
 3. Removes the corresponding image. 
 4. Builds a new image and passes the port number as a `--build-args` value.
-5. Starts the container with the new app name based on the image just created.     
+5. Starts the container with the new app name based on the image just created. 
+
+Similarly, when `/destroy` is called, a random server is chosen other than the first server that was spawned at port `3000` and is put in a delete servers temporary `redis` list. The `infrastructure.js` file also polls this list and sees if there is anything to destroy. If so, it stops the app, removes it and removes the image associated with it. Accordingly, it also removes the value from the main servers `redis` list.    
 
 ### Docker Deployment (`docker-deploy`)
 
-I have my app in the `app` subdirectory. I have also created a `deploy` subdirectory which holds the `blue.git` and `green.git` bare repositories and the `blue-www` and `green-www` deployed docker container contents. This folder is not present in the github repository as I don't want to commit irrelevant `*.git` files to another git repository. So I have committed the hooks in the `post-receive_blue` and `post-receive_green` files. The complete implementation is present in these `post-receive` hooks for both the git repositories. The `app` holds both the repositories as `remote`. A private docker registry has been started at port `2345` with:
+I have my app in the `app` subdirectory. I have also created a `deploy` subdirectory which holds the `blue.git` and `green.git` bare repositories and the `blue-www` and `green-www` deployed docker container contents. This folder is not present in the github repository as I don't want to commit irrelevant `*.git` files to another git repository. So I have committed the hooks in the `post-receive_blue` and `post-receive_green` files. The complete implementation is present in these `post-receive` hooks for both the git repositories. The `app` holds both the repositories as `remote`. A private docker registry has been started at port `5000` with:
 ```
-docker run -d -p 2345:2345 --restart=always --name registry registry:2
+docker run -d -p 5000:5000 --restart=always --name registry registry:2
 ```
 When you push to either of the repositories, the `post-receive` hook gets fired and it does the following things:
 

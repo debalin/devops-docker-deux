@@ -12,6 +12,7 @@ var recentKey = "recent";
 var imageKey = "images";
 var serversKey = "servers";
 var tempServersKey = "tempServers";
+var deleteServersKey = "deleteServers";
 var hostnameURL = "";
 var mainServerURL = "";
 var PORT = process.env.start_port;
@@ -120,10 +121,10 @@ app.get('/destroy', function (req, res) {
       res.send("<p>Nothing to destroy.</p>");
     }
     else {
-      var randomServerIndex = getRandomIntInclusive(0, serversCount - 1);
+      var randomServerIndex = getRandomIntInclusive(0, serversCount - 2);
       client.lindex(serversKey, randomServerIndex, function (err, reply1) {
         if (err) throw err;
-        client.lrem(serversKey, 0, reply1, function (err, reply2) {
+        client.lpush(deleteServersKey, reply1, function (err, reply2) {
           res.send("<p>Server at " + reply1 + " destroyed.");
         });
       });
