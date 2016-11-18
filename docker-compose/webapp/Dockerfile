@@ -16,7 +16,7 @@ RUN npm install --silent
 COPY . /code
 
 # Expose the webapp
-EXPOSE 3000
+EXPOSE $port
 
 # This should run the webapp
 CMD ["node", "main.js"]
