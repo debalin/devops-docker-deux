@@ -1,0 +1,16 @@
+#!/bin/sh
+
+GIT_WORK_TREE=/vagrant/docker-deploy/deploy/green-www git checkout -f
+cd /vagrant/docker-deploy/deploy/green-www/
+
+sudo docker stop green-app
+sudo docker rm green-app
+sudo docker rmi green-image
+sudo docker build -t green-image . 
+
+sudo docker tag green-image localhost:5000/green-registry:latest
+sudo docker push localhost:5000/green-registry:latest
+
+sudo docker pull localhost:5000/green-registry:latest  
+
+sudo docker run -p 50100:8080 -d --name green-app localhost:5000/green-registry:latest

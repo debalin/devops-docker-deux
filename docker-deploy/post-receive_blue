@@ -1,0 +1,16 @@
+#!/bin/sh
+
+GIT_WORK_TREE=/vagrant/docker-deploy/deploy/blue-www git checkout -f
+cd /vagrant/docker-deploy/deploy/blue-www/
+
+sudo docker stop blue-app
+sudo docker rm blue-app
+sudo docker rmi blue-image
+sudo docker build -t blue-image . 
+
+sudo docker tag blue-image localhost:5000/blue-registry:latest
+sudo docker push localhost:5000/blue-registry:latest
+
+sudo docker pull localhost:5000/blue-registry:latest  
+
+sudo docker run -p 50101:8080 -d --name blue-app localhost:5000/blue-registry:latest
